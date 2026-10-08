@@ -1,0 +1,191 @@
+renseignement-militaires<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#173b2b">
+<title>Fiches de renseignement</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f4f2;color:#17251c}
+header{background:#173b2b;color:white;padding:22px 12px;text-align:center}
+main{max-width:650px;margin:18px auto;padding:12px}
+.card{background:white;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px #0001}
+h2{margin-top:0}
+input,textarea{display:block;width:100%;padding:12px;margin:8px 0 14px;border:1px solid #ccd5cf;border-radius:8px;font-size:16px}
+label{font-weight:bold;font-size:14px}
+button{background:#173b2b;color:white;border:0;border-radius:8px;padding:12px;margin:4px 2px;font-size:15px}
+.secondary{background:#66736b}
+.danger{background:#a52b2b}
+.person{border:1px solid #ddd;padding:12px;margin-top:10px;border-radius:8px;overflow-wrap:anywhere}
+small{color:#65736a}
+</style>
+</head>
+<body>
+<header>
+<h2>FICHES DE RENSEIGNEMENT</h2>
+<p>Gestion administrative</p>
+</header>
+
+<main>
+<section id="connexion" class="card">
+<h3>Connexion administrateur</h3>
+<input id="utilisateur" placeholder="Identifiant">
+<input id="motdepasse" type="password" placeholder="Mot de passe">
+<button onclick="connexion()">Se connecter</button>
+<p id="message"></p>
+</section>
+
+<section id="application" hidden>
+<div class="card">
+<h3>Tableau de bord</h3>
+<p>Nombre de fiches : <b id="nombre">0</b></p>
+<input id="recherche" placeholder="Rechercher une fiche" oninput="afficher()">
+<button onclick="nouveau()">+ Nouvelle fiche</button>
+<button class="secondary" onclick="deconnexion()">Déconnexion</button>
+<div id="liste"></div>
+</div>
+
+<div class="card" id="formulaire" hidden>
+<h3 id="titre">Nouvelle fiche</h3>
+<form id="fiche" onsubmit="enregistrer(event)">
+<input id="id" type="hidden">
+
+<label>Nom et prénom</label>
+<input id="nom" required>
+
+<label>Matricule</label>
+<input id="matricule">
+
+<label>Grade</label>
+<input id="grade">
+
+<label>Unité / service</label>
+<input id="unite">
+
+<label>Téléphone</label>
+<input id="telephone" type="tel">
+
+<label>Date de naissance</label>
+<input id="date" type="date">
+
+<label>Lieu de naissance</label>
+<input id="lieu">
+
+<label>Adresse</label>
+<input id="adresse">
+
+<label>Personne à contacter en cas de besoin</label>
+<input id="urgence">
+
+<label>Numéro de téléphone en cas de besoin</label>
+<input id="numeroUrgence" type="tel">
+
+<label>Lien avec cette personne</label>
+<input id="lien">
+
+<label>Observations</label>
+<textarea id="observations"></textarea>
+
+<button type="submit">Enregistrer la fiche</button>
+<button type="button" class="secondary" onclick="annuler()">Annuler</button>
+</form>
+</div>
+</section>
+</main>
+
+<script>
+const CLE="fiches_renseignement_demo";
+const UTILISATEUR="admin";
+const MOTDEPASSE="ChangezMoi123!";
+
+function connexion(){
+ if(document.getElementById("utilisateur").value===UTILISATEUR &&
+ document.getElementById("motdepasse").value===MOTDEPASSE){
+ sessionStorage.setItem("sessionDemo","oui");
+ ouvrir();
+ }else{
+ document.getElementById("message").textContent="Identifiant ou mot de passe incorrect.";
+ }
+}
+
+function ouvrir(){
+ document.getElementById("connexion").hidden=true;
+ document.getElementById("application").hidden=false;
+ afficher();
+}
+
+function deconnexion(){
+ sessionStorage.removeItem("sessionDemo");
+ location.reload();
+}
+
+function lire(){
+ try{return JSON.parse(localStorage.getItem(CLE)||"[]")}
+ catch(e){return []}
+}
+
+function nouveau(p=null){
+ document.getElementById("formulaire").hidden=false;
+ document.getElementById("titre").textContent=p?"Modifier la fiche":"Nouvelle fiche";
+ document.getElementById("id").value=p?p.id:"";
+ ["nom","matricule","grade","unite","telephone","date","lieu","adresse","urgence","numeroUrgence","lien","observations"].forEach(k=>{
+ document.getElementById(k).value=p?(p[k]||""):"";
+ });
+ window.scrollTo(0,0);
+}
+
+function annuler(){
+ document.getElementById("formulaire").hidden=true;
+}
+
+function enregistrer(e){
+ e.preventDefault();
+ let champs=["nom","matricule","grade","unite","telephone","date","lieu","adresse","urgence","numeroUrgence","lien","observations"];
+ let p={id:document.getElementById("id").value||String(Date.now())};
+ champs.forEach(k=>p[k]=document.getElementById(k).value.trim());
+ let a=lire(),i=a.findIndex(x=>x.id===p.id);
+ if(i>=0)a[i]=p;else a.unshift(p);
+ localStorage.setItem(CLE,JSON.stringify(a));
+ document.getElementById("formulaire").hidden=true;
+ afficher();
+ document.getElementById("fiche").reset();
+}
+
+function echapper(v){
+ return String(v||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function afficher(){
+ let q=(document.getElementById("recherche").value||"").toLowerCase();
+ let a=lire();
+ document.getElementById("nombre").textContent=a.length;
+ let resultat=a.filter(p=>Object.values(p).join(" ").toLowerCase().includes(q));
+ document.getElementById("liste").innerHTML=resultat.map(p=>`
+ <div class="person">
+ <b>${echapper(p.nom)}</b><br>
+ <small>Matricule : ${echapper(p.matricule)} | Grade : ${echapper(p.grade)}</small>
+ <p>Téléphone : ${echapper(p.telephone)}<br>
+ Contact en cas de besoin : ${echapper(p.urgence)}<br>
+ Numéro : ${echapper(p.numeroUrgence)}</p>
+ <button onclick="modifier('${p.id}')">Modifier</button>
+ <button class="danger" onclick="supprimer('${p.id}')">Supprimer</button>
+ </div>`).join("")||"<p>Aucune fiche enregistrée.</p>";
+}
+
+function modifier(id){
+ let p=lire().find(x=>x.id===id);
+ if(p)nouveau(p);
+}
+
+function supprimer(id){
+ if(confirm("Supprimer cette fiche ?")){
+ localStorage.setItem(CLE,JSON.stringify(lire().filter(p=>p.id!==id)));
+ afficher();
+ }
+}
+
+if(sessionStorage.getItem("sessionDemo")==="oui")ouvrir();
+</script>
+</body>
+</html>
